@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.recharts-wrapper *,
+.recharts-surface:focus,
+.recharts-bar-rectangle:focus,
+svg:focus,
+rect:focus {
+    outline: none !important;
+}
