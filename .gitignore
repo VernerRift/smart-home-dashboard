@@ -30,3 +30,6 @@ __pycache__/
 venv/
 env/
 .env
+
+# --- Database / State ---
+state.json
