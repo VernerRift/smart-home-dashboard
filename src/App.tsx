@@ -1,19 +1,24 @@
-import { useEffect } from 'react'; // Убрали неиспользуемый импорт React
+import { useState, useEffect } from 'react';
 import { useDashboardStore } from './store/useDashboardStore';
 import { ConsumptionChart } from './components/ConsumptionChart';
 import { AnimatedConsumption } from './components/AnimatedConsumption';
 import DeviceCard from './components/DeviceCard';
 import { PowerChart } from './components/PowerChart';
-import { Zap } from 'lucide-react';
+import { Zap, Pencil, Plus, Check } from 'lucide-react';
 import { ConnectionStatus } from './components/ConnectionStatus';
 import { socketService } from './services/socketService';
 
 function App() {
+  const [isEditing, setIsEditing] = useState(false);
+
   const devices = useDashboardStore(state => state.devices);
   const getTotalConsumption = useDashboardStore(state => state.getTotalConsumption);
   const addHistoryPoint = useDashboardStore(state => state.addHistoryPoint);
   const setConnectionStatus = useDashboardStore(state => state.setConnectionStatus);
   const setDevicesState = useDashboardStore(state => state.setDevicesState);
+  
+  // Получаем функцию добавления нового устройства
+  const addDevice = useDashboardStore(state => state.addDevice);
 
   useEffect(() => {
     socketService.connect({
@@ -65,13 +70,35 @@ function App() {
               <PowerChart />
             </div>
           </div>
-          <aside className="lg:col-span-4 bg-slate-900 rounded-3xl p-6">
-            <h2 className="text-xl font-bold mb-4">Устройства</h2>
-            <div className="space-y-4">
+          <aside className="lg:col-span-4 bg-slate-900 rounded-3xl p-6 flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Устройства</h2>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {isEditing ? <Check size={18} /> : <Pencil size={18} />}
+                {isEditing ? 'Готово' : 'Редактировать'}
+              </button>
+            </div>
+            
+            <div className="space-y-4 flex-grow">
               {devices.map(device => (
-                <DeviceCard key={device.id} device={device} />
+                <DeviceCard key={device.id} device={device} isEditing={isEditing} />
               ))}
             </div>
+
+            {isEditing && (
+              <div className="mt-4 pt-4 border-t border-slate-800">
+                <button
+                  onClick={addDevice}
+                  className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-700 hover:border-slate-600 text-slate-500 hover:text-slate-400 rounded-2xl p-4 transition-colors"
+                >
+                  <Plus size={20} />
+                  Добавить новое устройство
+                </button>
+              </div>
+            )}
           </aside>
         </main>
       </div>

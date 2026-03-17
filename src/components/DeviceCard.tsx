@@ -1,30 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useDashboardStore } from '../store/useDashboardStore';
 import type { Device } from '../store/useDashboardStore';
-import { socketService } from '../services/socketService'; // <-- Возвращаем сервис
-import { Flame, Refrigerator, Waves, Lamp, Bed, Zap, Activity, Plug, Loader2 } from 'lucide-react';
+import { socketService } from '../services/socketService';
+import * as Icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-const iconMap: Record<string, LucideIcon> = {
-  Flame, Refrigerator, Waves, Lamp, Bed, Zap, Activity,
-};
+const availableIcons = [
+  'Router', 'Database', 'Camera', 'Server', 'Flame', 'Waves', 'Refrigerator',
+  'Zap', 'Lamp', 'Bed', 'PlusCircle', 'Tv', 'Laptop', 'Microwave', 'Fan', 'Activity', 'Plug'
+];
 
-const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
-  // Получаем ТОЛЬКО то, что нужно для UI
-  const optimisticToggle = useDashboardStore(state => state.optimisticToggle);
+interface DeviceCardProps {
+  device: Device;
+  isEditing?: boolean;
+}
+
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) => {
+  const toggleDevice = useDashboardStore(state => state.toggleDevice);
+  const updateDevice = useDashboardStore(state => state.updateDevice);
   const pendingDevices = useDashboardStore(state => state.pendingDevices);
   
   const isPending = pendingDevices.includes(device.id);
 
+  // Локальное состояние для редактирования
+  const [editValues, setEditValues] = useState({
+    name: device.name,
+    iconName: device.iconName,
+    powerDrawW: device.powerDrawW,
+  });
+
+  // Синхронизируем локальное состояние, только если мы НЕ в режиме редактирования.
+  // Иначе скачки мощности с сервера будут сбрасывать то, что вводит пользователь.
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValues({
+        name: device.name,
+        iconName: device.iconName,
+        powerDrawW: device.powerDrawW,
+      });
+    }
+  }, [isEditing, device.name, device.iconName, device.powerDrawW]);
+
   const handleToggle = () => {
     if (isPending) return;
-    // Снова выполняем 2 действия:
-    optimisticToggle(device.id); // 1. Обновляем UI
-    socketService.sendToggleCommand(device.id); // 2. Отправляем команду
+    toggleDevice(device.id);
   };
 
-  const IconComponent = iconMap[device.iconName] || Plug;
+  const handleInputChange = (field: keyof typeof editValues, value: string | number) => {
+    const newValues = { ...editValues, [field]: value };
+    setEditValues(newValues);
+    // Отправляем команду обновления
+    updateDevice(device.id, newValues);
+  };
+
+  const IconComponent = (Icons[device.iconName as keyof typeof Icons] as LucideIcon) || Icons.Plug;
 
   return (
     <div
@@ -35,46 +65,87 @@ const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
       )}
     >
       <div className="flex justify-between items-start mb-4 gap-4">
-        <div className="flex items-center gap-4 min-w-0"> 
-          <div className={clsx('p-2 rounded-lg flex-shrink-0', device.isOn ? 'bg-blue-500/10' : 'bg-slate-700')}>
-            <IconComponent
-              size={24}
-              className={clsx('transition-colors duration-300', device.isOn ? 'text-blue-400' : 'text-slate-500')}
+        
+        {isEditing ? (
+          <div className="flex items-center gap-2 w-full">
+            <select 
+              value={editValues.iconName} 
+              onChange={(e) => handleInputChange('iconName', e.target.value)} 
+              className="bg-slate-700 text-white rounded-md px-2 py-1 flex-shrink-0"
+            >
+              {availableIcons.map(iconName => <option key={iconName} value={iconName}>{iconName}</option>)}
+            </select>
+            <input 
+              type="text" 
+              value={editValues.name} 
+              onChange={(e) => handleInputChange('name', e.target.value)} 
+              className="bg-slate-700 text-white rounded-md px-2 py-1 w-full" 
+              placeholder="Название" 
             />
           </div>
-          <h3 className="font-semibold text-lg text-slate-100 truncate">{device.name}</h3>
-        </div>
+        ) : (
+          <div className="flex items-center gap-4 min-w-0"> 
+            <div className={clsx('p-2 rounded-lg flex-shrink-0', device.isOn ? 'bg-blue-500/10' : 'bg-slate-700')}>
+              <IconComponent
+                size={24}
+                className={clsx('transition-colors duration-300', device.isOn ? 'text-blue-400' : 'text-slate-500')}
+              />
+            </div>
+            <h3 className="font-semibold text-lg text-slate-100 truncate">{device.name}</h3>
+          </div>
+        )}
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {isPending && <Loader2 size={20} className="animate-spin text-blue-500" />}
-          <label
-            htmlFor={`toggle-${device.id}`}
-            className={clsx(
-              'relative inline-flex items-center',
-              isPending ? 'cursor-not-allowed' : 'cursor-pointer'
-            )}
-          >
-            <input
-              type="checkbox"
-              id={`toggle-${device.id}`}
-              className="sr-only peer"
-              checked={device.isOn}
-              onChange={handleToggle}
-              disabled={isPending}
-            />
-            <div className="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </div>
+        {!isEditing && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {isPending && <Icons.Loader2 size={20} className="animate-spin text-blue-500" />}
+            <label
+              htmlFor={`toggle-${device.id}`}
+              className={clsx(
+                'relative inline-flex items-center',
+                isPending ? 'cursor-not-allowed' : 'cursor-pointer'
+              )}
+            >
+              <input
+                type="checkbox"
+                id={`toggle-${device.id}`}
+                className="sr-only peer"
+                checked={device.isOn}
+                onChange={handleToggle}
+                disabled={isPending}
+              />
+              <div className="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-between items-end">
-        <div>
-          <p className="text-sm text-slate-400">Потребление</p>
-          <p className={clsx('text-2xl font-semibold transition-opacity duration-300', device.isOn ? 'text-white' : 'text-slate-500 opacity-70')}>
-            {device.isOn ? `${device.powerDrawW} Вт` : '0 Вт'}
-          </p>
-        </div>
-        {device.isCritical && (
+        {isEditing ? (
+           <div className="flex items-center gap-2">
+             <input 
+               type="number" 
+               value={editValues.powerDrawW} 
+               onChange={(e) => handleInputChange('powerDrawW', Number(e.target.value))} 
+               className="bg-slate-700 text-white rounded-md px-2 py-1 w-24" 
+             />
+             <span className="text-sm text-slate-400">Вт</span>
+             <div className="group relative flex items-center gap-1 text-slate-500 ml-2 cursor-help">
+               <Icons.Info size={16} />
+               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                 Только для демо
+               </span>
+             </div>
+           </div>
+        ) : (
+          <div>
+            <p className="text-sm text-slate-400">Потребление</p>
+            <p className={clsx('text-2xl font-semibold transition-opacity duration-300', device.isOn ? 'text-white' : 'text-slate-500 opacity-70')}>
+              {device.isOn ? `${device.powerDrawW} Вт` : '0 Вт'}
+            </p>
+          </div>
+        )}
+        
+        {device.isCritical && !isEditing && (
           <div className="flex items-center gap-2 bg-rose-500/10 text-rose-400 text-xs font-medium px-3 py-1 rounded-full">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>

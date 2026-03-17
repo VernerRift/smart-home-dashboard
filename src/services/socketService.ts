@@ -2,7 +2,6 @@
 let socket: WebSocket | null = null;
 let reconnectTimer: NodeJS.Timeout | null = null;
 
-// Определяем URL для WebSocket в зависимости от протокола страницы
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const WEBSOCKET_URL = `${protocol}//${window.location.host}/ws`;
 
@@ -55,19 +54,21 @@ function connect(callbacks: SocketCallbacks) {
   };
 }
 
-function sendToggleCommand(deviceId: string) {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    const command = {
-      action: 'toggle',
-      device_id: deviceId,
-    };
-    socket.send(JSON.stringify(command));
-  } else {
-    console.error('WebSocket is not connected or ready.');
-  }
-}
-
 export const socketService = {
   connect,
-  sendToggleCommand,
+  sendToggleCommand: (deviceId: string) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ action: 'toggle', device_id: deviceId }));
+    }
+  },
+  sendAddDeviceCommand: () => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ action: 'add_device' }));
+    }
+  },
+  sendUpdateDeviceCommand: (deviceId: string, updates: object) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ action: 'update_device', device_id: deviceId, updates }));
+    }
+  },
 };

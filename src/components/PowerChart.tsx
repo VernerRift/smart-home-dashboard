@@ -11,24 +11,16 @@ import {
 import { useDashboardStore } from '../store/useDashboardStore';
 import type { Device } from '../store/useDashboardStore';
 
+import * as Icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Flame, Refrigerator, Waves, Lamp, Bed, Zap, Activity, Plug } from 'lucide-react';
-
-const iconMap: Record<string, LucideIcon> = {
-  Flame,
-  Refrigerator,
-  Waves,
-  Lamp,
-  Bed,
-  Zap,
-  Activity,
-};
 
 const CustomAxisTick = (props: any) => {
   const { x, y, payload, devices } = props;
   const device = devices.find((d: Device) => d.name === payload.value);
   const iconName = device?.iconName || '';
-  const IconComponent = iconMap[iconName] || Plug;
+  
+  // Динамически получаем иконку, как и в карточках
+  const IconComponent = (Icons[iconName as keyof typeof Icons] as LucideIcon) || Icons.Plug;
 
   return (
     <g transform={`translate(${x - 12},${y + 10})`}>

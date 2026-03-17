@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { socketService } from '../services/socketService';
 
 export interface Device {
   id: string;
@@ -20,7 +21,10 @@ interface DashboardState {
   history: HistoryPoint[];
   isConnected: boolean;
   
-  optimisticToggle: (id: string) => void; // <-- Только этот метод нужен для UI
+  connect: () => void;
+  toggleDevice: (id: string) => void;
+  addDevice: () => void;
+  updateDevice: (id: string, updates: Partial<Omit<Device, 'id'>>) => void;
   setDevicesState: (backendDevices: Partial<Device>[]) => void;
   setConnectionStatus: (status: boolean) => void;
   addHistoryPoint: () => void;
@@ -28,57 +32,70 @@ interface DashboardState {
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
-  devices: [
-    { id: 'boiler', name: 'Газовый котел Bosch Gaz 3000 W', isOn: true, powerDrawW: 120, isCritical: true, iconName: 'Flame' },
-    { id: 'pumps', name: 'Циркуляционные насосы', isOn: true, powerDrawW: 90, isCritical: true, iconName: 'Activity' },
-    { id: 'fridge', name: 'Холодильники', isOn: false, powerDrawW: 300, isCritical: false, iconName: 'Refrigerator' },
-    { id: 'inverter', name: 'Инвертор', isOn: true, powerDrawW: 25, isCritical: true, iconName: 'Zap' },
-    { id: 'living_room', name: 'Гостиная', isOn: true, powerDrawW: 60, isCritical: false, iconName: 'Lamp' },
-    { id: 'bedroom', name: 'Спальня', isOn: false, powerDrawW: 40, isCritical: false, iconName: 'Bed' },
-  ],
+  devices: [], // Начальное состояние пустое, все придет с сервера
   pendingDevices: [],
   history: [],
   isConnected: false,
 
-  optimisticToggle: (id: string) => {
+  connect: () => socketService.connect({
+    onOpen: () => set({ isConnected: true }),
+    onMessage: (data) => get().setDevicesState(data),
+    onClose: () => set({ isConnected: false }),
+  }),
+
+  toggleDevice: (id: string) => {
     set(state => ({
       pendingDevices: [...state.pendingDevices, id],
-      devices: state.devices.map(device =>
-        device.id === id ? { ...device, isOn: !device.isOn } : device
-      ),
+      devices: state.devices.map(d => d.id === id ? { ...d, isOn: !d.isOn } : d),
     }));
+    socketService.sendToggleCommand(id);
+  },
+
+  addDevice: () => {
+    socketService.sendAddDeviceCommand();
+  },
+
+  updateDevice: (id, updates) => {
+    // Оптимистичное обновление на фронтенде перед подтверждением с сервера
+    set(state => ({
+      devices: state.devices.map(d => d.id === id ? { ...d, ...updates } : d),
+    }));
+    socketService.sendUpdateDeviceCommand(id, updates);
   },
 
   setDevicesState: (backendDevices) => set(state => {
     const newPending = [...state.pendingDevices];
-    const newDevices = state.devices.map(device => {
-      const backendUpdate = backendDevices.find(d => d.id === device.id);
-      if (!backendUpdate) return device;
-
-      const isPending = state.pendingDevices.includes(device.id);
-      let finalIsOn = device.isOn;
-
-      if (isPending) {
-        if (backendUpdate.isOn === device.isOn) {
-          const index = newPending.indexOf(device.id);
-          if (index > -1) newPending.splice(index, 1);
-        }
-        finalIsOn = device.isOn;
-      } else {
-        finalIsOn = backendUpdate.isOn ?? device.isOn;
+    
+    // Преобразуем входящие данные с сервера
+    const newDevices = backendDevices.map(backendDevice => {
+      // Ищем устройство в текущем стейте (если оно там есть)
+      const frontendDevice = state.devices.find(d => d.id === backendDevice.id);
+      
+      // Если устройство новое (его нет на фронте), просто возвращаем его с сервера
+      if (!frontendDevice) {
+        return backendDevice as Device;
       }
 
-      return {
-        ...device,
-        isOn: finalIsOn,
-        powerDrawW: backendUpdate.powerDrawW ?? device.powerDrawW,
-      };
+      // Если устройство уже есть на фронте, проверяем pending статус
+      const isPending = state.pendingDevices.includes(backendDevice.id as string);
+      
+      if (isPending && backendDevice.isOn === frontendDevice.isOn) {
+        // Сервер подтвердил наш статус isOn. Убираем из pending.
+        const index = newPending.indexOf(backendDevice.id as string);
+        if (index > -1) newPending.splice(index, 1);
+      }
+      
+      if(isPending) {
+        // Сервер еще не обработал нажатие, сохраняем оптимистичный isOn с фронта, 
+        // но берем свежие остальные данные с бэка.
+        return { ...backendDevice, isOn: frontendDevice.isOn } as Device;
+      }
+
+      // Если не в pending, просто принимаем все свежие данные с бэка
+      return { ...frontendDevice, ...backendDevice } as Device;
     });
 
-    return {
-      devices: newDevices,
-      pendingDevices: newPending,
-    };
+    return { devices: newDevices, pendingDevices: newPending };
   }),
 
   setConnectionStatus: (status: boolean) => set({ isConnected: status }),
