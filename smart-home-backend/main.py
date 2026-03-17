@@ -86,6 +86,7 @@ async def telemetry_sender():
         await broadcast_state()
 
 async def command_receiver(websocket: WebSocket):
+    global devices_state
     try:
         while True:
             message_text = await websocket.receive_text()
@@ -122,6 +123,13 @@ async def command_receiver(websocket: WebSocket):
                         devices_state[device_id]["icon"] = updates["iconName"]
                     if "powerDrawW" in updates:
                         devices_state[device_id]["base_power"] = float(updates["powerDrawW"])
+                    save_state()
+                    await broadcast_state()
+            
+            elif action == "remove_device" and "device_id" in message_data:
+                device_id = message_data["device_id"]
+                if device_id in devices_state:
+                    del devices_state[device_id]
                     save_state()
                     await broadcast_state()
 

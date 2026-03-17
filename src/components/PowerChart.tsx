@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -19,7 +19,6 @@ const CustomAxisTick = (props: any) => {
   const device = devices.find((d: Device) => d.name === payload.value);
   const iconName = device?.iconName || '';
   
-  // Динамически получаем иконку, как и в карточках
   const IconComponent = (Icons[iconName as keyof typeof Icons] as LucideIcon) || Icons.Plug;
 
   return (
@@ -43,6 +42,12 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] 
 
 export const PowerChart: React.FC = () => {
   const devices = useDashboardStore((state) => state.devices);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const chartData = useMemo(() => {
     return devices
@@ -59,45 +64,47 @@ export const PowerChart: React.FC = () => {
   }
 
   return (
-    <div className="h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={chartData}
-          margin={{
-            top: 5,
-            right: 10,
-            left: -10,
-            bottom: 20,
-          }}
-        >
-          <XAxis
-            dataKey="name"
-            tickLine={false}
-            axisLine={false}
-            interval={0}
-            tick={<CustomAxisTick devices={devices} />}
-          />
-          <YAxis
-            stroke="#9ca3af"
-            fontSize={12}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(value) => `${value} W`}
-          />
-          <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
-          />
-          <Bar dataKey="powerDrawW" radius={[4, 4, 0, 0]}>
-            {chartData.map((entry) => (
-              <Cell
-                key={`cell-${entry.id}`}
-                fill={entry.isCritical ? '#ef4444' : '#3b82f6'}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="w-full">
+      {isMounted && (
+        <ResponsiveContainer width="99%" height={250}>
+          <BarChart
+            data={chartData}
+            margin={{
+              top: 5,
+              right: 10,
+              left: -10,
+              bottom: 20,
+            }}
+          >
+            <XAxis
+              dataKey="name"
+              tickLine={false}
+              axisLine={false}
+              interval={0}
+              tick={<CustomAxisTick devices={devices} />}
+            />
+            <YAxis
+              stroke="#9ca3af"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `${value} W`}
+            />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
+            />
+            <Bar dataKey="powerDrawW" radius={[4, 4, 0, 0]}>
+              {chartData.map((entry) => (
+                <Cell
+                  key={`cell-${entry.id}`}
+                  fill={entry.isCritical ? '#ef4444' : '#3b82f6'}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 };

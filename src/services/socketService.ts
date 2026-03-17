@@ -71,4 +71,9 @@ export const socketService = {
       socket.send(JSON.stringify({ action: 'update_device', device_id: deviceId, updates }));
     }
   },
+  sendRemoveDeviceCommand: (deviceId: string) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ action: 'remove_device', device_id: deviceId }));
+    }
+  },
 };

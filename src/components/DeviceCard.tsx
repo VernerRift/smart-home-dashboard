@@ -19,6 +19,7 @@ interface DeviceCardProps {
 const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) => {
   const toggleDevice = useDashboardStore(state => state.toggleDevice);
   const updateDevice = useDashboardStore(state => state.updateDevice);
+  const removeDevice = useDashboardStore(state => state.removeDevice);
   const pendingDevices = useDashboardStore(state => state.pendingDevices);
   
   const isPending = pendingDevices.includes(device.id);
@@ -54,20 +55,37 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
     updateDevice(device.id, newValues);
   };
 
+  const handleDelete = () => {
+    if (window.confirm(`Вы уверены, что хотите удалить устройство "${device.name}"?`)) {
+      removeDevice(device.id);
+    }
+  };
+
   const IconComponent = (Icons[device.iconName as keyof typeof Icons] as LucideIcon) || Icons.Plug;
 
   return (
     <div
       className={clsx(
-        'rounded-2xl p-5 flex flex-col justify-between transition-all duration-300',
+        'rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 relative',
         'bg-slate-900 dark:bg-slate-800 shadow-lg',
         isPending && 'opacity-70'
       )}
     >
+      {/* Кнопка удаления в режиме редактирования */}
+      {isEditing && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-4 right-4 text-slate-500 hover:text-rose-500 transition-colors p-1"
+          title="Удалить устройство"
+        >
+          <Icons.Trash2 size={18} />
+        </button>
+      )}
+
       <div className="flex justify-between items-start mb-4 gap-4">
         
         {isEditing ? (
-          <div className="flex items-center gap-2 w-full">
+          <div className="flex items-center gap-2 w-full pr-8"> {/* Добавлен padding справа для кнопки удаления */}
             <select 
               value={editValues.iconName} 
               onChange={(e) => handleInputChange('iconName', e.target.value)} 

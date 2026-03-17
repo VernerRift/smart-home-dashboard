@@ -25,7 +25,8 @@ interface DashboardState {
   toggleDevice: (id: string) => void;
   addDevice: () => void;
   updateDevice: (id: string, updates: Partial<Omit<Device, 'id'>>) => void;
-  setDevicesState: (backendDevices: Partial<Device>[]) => void;
+  removeDevice: (id: string) => void;
+  setDevicesState: (backendDevices: Device[]) => void;
   setConnectionStatus: (status: boolean) => void;
   addHistoryPoint: () => void;
   getTotalConsumption: () => number;
@@ -63,38 +64,31 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     socketService.sendUpdateDeviceCommand(id, updates);
   },
 
+  removeDevice: (id: string) => {
+    set(state => ({
+      devices: state.devices.filter(d => d.id !== id),
+    }));
+    socketService.sendRemoveDeviceCommand(id);
+  },
+
   setDevicesState: (backendDevices) => set(state => {
     const newPending = [...state.pendingDevices];
-    
-    // Преобразуем входящие данные с сервера
     const newDevices = backendDevices.map(backendDevice => {
-      // Ищем устройство в текущем стейте (если оно там есть)
       const frontendDevice = state.devices.find(d => d.id === backendDevice.id);
-      
-      // Если устройство новое (его нет на фронте), просто возвращаем его с сервера
-      if (!frontendDevice) {
-        return backendDevice as Device;
-      }
+      if (!frontendDevice) return backendDevice;
 
-      // Если устройство уже есть на фронте, проверяем pending статус
-      const isPending = state.pendingDevices.includes(backendDevice.id as string);
-      
+      const isPending = state.pendingDevices.includes(backendDevice.id);
       if (isPending && backendDevice.isOn === frontendDevice.isOn) {
-        // Сервер подтвердил наш статус isOn. Убираем из pending.
-        const index = newPending.indexOf(backendDevice.id as string);
+        const index = newPending.indexOf(backendDevice.id);
         if (index > -1) newPending.splice(index, 1);
       }
       
       if(isPending) {
-        // Сервер еще не обработал нажатие, сохраняем оптимистичный isOn с фронта, 
-        // но берем свежие остальные данные с бэка.
-        return { ...backendDevice, isOn: frontendDevice.isOn } as Device;
+        return { ...backendDevice, isOn: frontendDevice.isOn };
       }
 
-      // Если не в pending, просто принимаем все свежие данные с бэка
-      return { ...frontendDevice, ...backendDevice } as Device;
+      return { ...frontendDevice, ...backendDevice };
     });
-
     return { devices: newDevices, pendingDevices: newPending };
   }),
 
