@@ -10,7 +10,6 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
-  // Возвращаем использование метода toggleDevice из стора
   const toggleDevice = useDashboardStore(state => state.toggleDevice);
   const pendingDevices = useDashboardStore(state => state.pendingDevices);
   
@@ -18,7 +17,7 @@ const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
 
   const handleToggle = () => {
     if (isPending) return;
-    toggleDevice(device.id); // Теперь это безопасно
+    toggleDevice(device.id);
   };
 
   const IconComponent = iconMap[device.iconName] || Plug;
@@ -31,18 +30,20 @@ const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
         isPending && 'opacity-70'
       )}
     >
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-4">
-          <div className={clsx('p-2 rounded-lg', device.isOn ? 'bg-blue-500/10' : 'bg-slate-700')}>
+      <div className="flex justify-between items-start mb-4 gap-4"> {/* Добавлен gap для безопасности */}
+        {/* Добавлен класс min-w-0, чтобы текст мог сжиматься и переноситься */}
+        <div className="flex items-center gap-4 min-w-0"> 
+          <div className={clsx('p-2 rounded-lg flex-shrink-0', device.isOn ? 'bg-blue-500/10' : 'bg-slate-700')}>
             <IconComponent
               size={24}
               className={clsx('transition-colors duration-300', device.isOn ? 'text-blue-400' : 'text-slate-500')}
             />
           </div>
-          <h3 className="font-semibold text-lg text-slate-100">{device.name}</h3>
+          {/* Добавлен класс truncate для обрезки текста, если он все равно не помещается */}
+          <h3 className="font-semibold text-lg text-slate-100 truncate">{device.name}</h3>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0"> {/* flex-shrink-0 предотвращает сжатие этого блока */}
           {isPending && <Loader2 size={20} className="animate-spin text-blue-500" />}
           <label
             htmlFor={`toggle-${device.id}`}
