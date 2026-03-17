@@ -3,15 +3,15 @@ import json
 import random
 import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from contextlib import asynccontextmanager
 import uvicorn
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 
-app = FastAPI()
 STATE_FILE = Path("state.json")
 
-# Полное начальное состояние
-default_devices_state = {
+# Полное начальное состояние с явным указанием типов
+default_devices_state: Dict[str, Dict[str, Any]] = {
     "boiler": {"id": "boiler", "name": "Bosch Gaz 3000 W", "icon": "Flame", "base_power": 120, "isOn": True, "isCritical": True},
     "pumps": {"id": "pumps", "name": "Циркуляционные насосы", "icon": "Waves", "base_power": 90, "isOn": True, "isCritical": True},
     "fridge": {"id": "fridge", "name": "Холодильники", "icon": "Refrigerator", "base_power": 350, "isOn": True, "isCritical": False},
@@ -54,6 +54,7 @@ def load_state():
             with STATE_FILE.open("r", encoding="utf-8") as f:
                 devices_state = json.load(f)
         except (IOError, json.JSONDecodeError) as e:
+            print(f"Ошибка при загрузке state.json (будут использованы дефолтные значения): {e}")
             devices_state = default_devices_state.copy()
     else:
         devices_state = default_devices_state.copy()
@@ -140,10 +141,15 @@ async def command_receiver(websocket: WebSocket):
     finally:
         manager.disconnect(websocket)
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Код, который выполняется при старте (до yield)
     load_state()
     asyncio.create_task(telemetry_sender())
+    yield
+    # Код, который выполняется при остановке (после yield), если нужен
+
+app = FastAPI(lifespan=lifespan)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
