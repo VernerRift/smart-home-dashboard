@@ -1,28 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 
-// Easing-функция для более плавной анимации (замедление в конце)
 const easeOutQuad = (t: number) => t * (2 - t);
 
 export const useAnimatedNumber = (targetValue: number, duration: number = 500) => {
   const [currentValue, setCurrentValue] = useState(targetValue);
   const animationFrameId = useRef<number | null>(null);
-  const startTime = useRef<number | null>(null);
-  const startValue = useRef(currentValue);
 
   useEffect(() => {
-    startValue.current = currentValue;
-    startTime.current = null;
+    const startValue = currentValue;
+    let startTime: number | null = null;
 
     const animate = (timestamp: number) => {
-      if (!startTime.current) {
-        startTime.current = timestamp;
+      if (!startTime) {
+        startTime = timestamp;
       }
 
-      const elapsedTime = timestamp - startTime.current;
+      const elapsedTime = timestamp - startTime;
       const progress = Math.min(elapsedTime / duration, 1);
       const easedProgress = easeOutQuad(progress);
 
-      const nextValue = startValue.current + (targetValue - startValue.current) * easedProgress;
+      const nextValue = startValue + (targetValue - startValue) * easedProgress;
       setCurrentValue(nextValue);
 
       if (progress < 1) {
@@ -39,7 +36,12 @@ export const useAnimatedNumber = (targetValue: number, duration: number = 500) =
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [targetValue, duration]); // Убрали currentValue из зависимостей
+  }, [targetValue, duration]); // Зависимость только от targetValue и duration
+
+  // Синхронизируем начальное состояние, если оно изменилось извне
+  useEffect(() => {
+    setCurrentValue(targetValue);
+  }, [targetValue]);
 
   return Math.round(currentValue);
 };

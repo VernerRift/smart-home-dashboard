@@ -9,12 +9,12 @@ app = FastAPI()
 
 STATE_FILE = Path("state.json")
 
-# Изменяем имя инвертора
+
 devices_state = {
     "boiler": {"id": "boiler", "name": "Bosch Gaz 3000 W", "isOn": True, "base_power": 120},
     "pumps": {"id": "pumps", "name": "Циркуляционные насосы", "isOn": True, "base_power": 90},
     "fridge": {"id": "fridge", "name": "Холодильники", "isOn": True, "base_power": 350},
-    "inverter": {"id": "inverter", "name": "Инвертор", "isOn": True, "base_power": 25}, # Изменено
+    "inverter": {"id": "inverter", "name": "Инвертор", "isOn": True, "base_power": 25},
     "living_room": {"id": "living_room", "name": "Гостиная", "isOn": True, "base_power": 60},
     "bedroom": {"id": "bedroom", "name": "Спальня", "isOn": False, "base_power": 40},
 }

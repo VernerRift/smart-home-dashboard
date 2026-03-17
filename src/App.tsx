@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react'; // Убрали неиспользуемый импорт React
 import { useDashboardStore } from './store/useDashboardStore';
 import { ConsumptionChart } from './components/ConsumptionChart';
 import { AnimatedConsumption } from './components/AnimatedConsumption';
@@ -6,18 +6,22 @@ import DeviceCard from './components/DeviceCard';
 import { PowerChart } from './components/PowerChart';
 import { Zap } from 'lucide-react';
 import { ConnectionStatus } from './components/ConnectionStatus';
+import { socketService } from './services/socketService';
 
 function App() {
-  // Получаем нужные методы и данные из стора
   const devices = useDashboardStore(state => state.devices);
   const getTotalConsumption = useDashboardStore(state => state.getTotalConsumption);
   const addHistoryPoint = useDashboardStore(state => state.addHistoryPoint);
-  const connect = useDashboardStore(state => state.connect); // Получаем метод connect
+  const setConnectionStatus = useDashboardStore(state => state.setConnectionStatus);
+  const setDevicesState = useDashboardStore(state => state.setDevicesState);
 
-  // Запускаем подключение к WebSocket при монтировании приложения
   useEffect(() => {
-    connect();
-  }, [connect]);
+    socketService.connect({
+      onOpen: () => setConnectionStatus(true),
+      onMessage: (data) => setDevicesState(data),
+      onClose: () => setConnectionStatus(false),
+    });
+  }, [setConnectionStatus, setDevicesState]);
 
   const totalConsumption = getTotalConsumption();
   const TARIFF_UAH_PER_KWH = 4.32;

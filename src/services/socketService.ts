@@ -1,7 +1,6 @@
-// Улучшенный сервис, устойчивый к двойным вызовам в React.StrictMode
-
+// Финальная, самовосстанавливающаяся версия сервиса
 let socket: WebSocket | null = null;
-let isConnecting = false; // Флаг, чтобы избежать повторных подключений
+let reconnectTimer: NodeJS.Timeout | null = null;
 const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws';
 
 interface SocketCallbacks {
@@ -11,47 +10,50 @@ interface SocketCallbacks {
 }
 
 function connect(callbacks: SocketCallbacks) {
-  // Если сокет уже есть или в процессе подключения, ничего не делаем
-  if (socket || isConnecting) {
+  // Предотвращаем создание дублирующих соединений
+  if (socket && socket.readyState !== WebSocket.CLOSED) {
     return;
   }
 
-  isConnecting = true;
+  console.log('Attempting to connect to WebSocket...');
+  socket = new WebSocket(WEBSOCKET_URL);
 
-  const attemptConnection = () => {
-    socket = new WebSocket(WEBSOCKET_URL);
-
-    socket.onopen = () => {
-      console.log('WebSocket connected');
-      isConnecting = false;
-      callbacks.onOpen();
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        callbacks.onMessage(data);
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
-      }
-    };
-
-    socket.onclose = () => {
-      console.log('WebSocket disconnected. Reconnecting in 3s...');
-      socket = null; // Сбрасываем сокет
-      isConnecting = false;
-      callbacks.onClose();
-      // Логика переподключения теперь не нужна здесь, т.к. StrictMode может вызвать ее дважды.
-      // useEffect в App.tsx сам позаботится о вызове connect при необходимости.
-    };
-
-    socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      socket?.close();
-    };
+  socket.onopen = () => {
+    console.log('WebSocket connected');
+    // Успешно подключились, отменяем таймер переподключения, если он был
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    callbacks.onOpen();
   };
 
-  attemptConnection();
+  socket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      callbacks.onMessage(data);
+    } catch (error) {
+      console.error('Failed to parse WebSocket message:', error);
+    }
+  };
+
+  socket.onclose = () => {
+    console.log('WebSocket disconnected. Attempting to reconnect in 3 seconds...');
+    callbacks.onClose();
+    
+    // Если уже есть запланированная попытка, не создаем новую
+    if (!reconnectTimer) {
+      reconnectTimer = setTimeout(() => {
+        connect(callbacks); // Пытаемся подключиться снова
+      }, 3000);
+    }
+  };
+
+  socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+    // onerror всегда вызывает onclose, поэтому логика реконнекта сработает автоматически
+    socket?.close();
+  };
 }
 
 function sendToggleCommand(deviceId: string) {

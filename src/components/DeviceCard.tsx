@@ -2,6 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { useDashboardStore } from '../store/useDashboardStore';
 import type { Device } from '../store/useDashboardStore';
+import { socketService } from '../services/socketService'; // <-- Возвращаем сервис
 import { Flame, Refrigerator, Waves, Lamp, Bed, Zap, Activity, Plug, Loader2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -10,14 +11,17 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
-  const toggleDevice = useDashboardStore(state => state.toggleDevice);
+  // Получаем ТОЛЬКО то, что нужно для UI
+  const optimisticToggle = useDashboardStore(state => state.optimisticToggle);
   const pendingDevices = useDashboardStore(state => state.pendingDevices);
   
   const isPending = pendingDevices.includes(device.id);
 
   const handleToggle = () => {
     if (isPending) return;
-    toggleDevice(device.id);
+    // Снова выполняем 2 действия:
+    optimisticToggle(device.id); // 1. Обновляем UI
+    socketService.sendToggleCommand(device.id); // 2. Отправляем команду
   };
 
   const IconComponent = iconMap[device.iconName] || Plug;
@@ -30,8 +34,7 @@ const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
         isPending && 'opacity-70'
       )}
     >
-      <div className="flex justify-between items-start mb-4 gap-4"> {/* Добавлен gap для безопасности */}
-        {/* Добавлен класс min-w-0, чтобы текст мог сжиматься и переноситься */}
+      <div className="flex justify-between items-start mb-4 gap-4">
         <div className="flex items-center gap-4 min-w-0"> 
           <div className={clsx('p-2 rounded-lg flex-shrink-0', device.isOn ? 'bg-blue-500/10' : 'bg-slate-700')}>
             <IconComponent
@@ -39,11 +42,10 @@ const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
               className={clsx('transition-colors duration-300', device.isOn ? 'text-blue-400' : 'text-slate-500')}
             />
           </div>
-          {/* Добавлен класс truncate для обрезки текста, если он все равно не помещается */}
           <h3 className="font-semibold text-lg text-slate-100 truncate">{device.name}</h3>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0"> {/* flex-shrink-0 предотвращает сжатие этого блока */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {isPending && <Loader2 size={20} className="animate-spin text-blue-500" />}
           <label
             htmlFor={`toggle-${device.id}`}
