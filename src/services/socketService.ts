@@ -41,8 +41,12 @@ function connect(callbacks: SocketCallbacks) {
     console.log('WebSocket disconnected. Attempting to reconnect in 3 seconds...');
     callbacks.onClose();
     
+    // Если таймера нет, создаем его
     if (!reconnectTimer) {
       reconnectTimer = setTimeout(() => {
+        // Обязательно сбрасываем переменную ПЕРЕД новой попыткой, 
+        // чтобы если попытка провалится, onclose снова смог создать таймер
+        reconnectTimer = null;
         connect(callbacks);
       }, 3000);
     }
@@ -50,6 +54,7 @@ function connect(callbacks: SocketCallbacks) {
 
   socket.onerror = (error) => {
     console.error('WebSocket error:', error);
+    // onerror всегда вызывает onclose, так что реконнект сработает там
     socket?.close();
   };
 }

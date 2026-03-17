@@ -102,8 +102,14 @@ def generate_telemetry():
     for device_id, device in devices_state.items():
         current_power = 0
         if device.get("isOn", False):
-            fluctuation = random.uniform(-2.0, 2.0)
-            current_power = round(device.get("base_power", 0) + fluctuation, 2)
+            base_power = device.get("base_power", 0)
+            # Не применяем шум к нулевому потреблению
+            if base_power > 0:
+                fluctuation = random.uniform(-2.0, 2.0)
+                # max(0, ...) гарантирует, что даже при базе 1 Вт колебание не уведет в минус
+                current_power = max(0, round(base_power + fluctuation, 2))
+            else:
+                current_power = 0
         
         telemetry_data.append({
             "id": device["id"],
@@ -131,8 +137,11 @@ async def history_saver():
         for device in devices_state.values():
             if device.get("isOn", False):
                 total_power += device.get("base_power", 0)
-        # Добавляем небольшую случайность
-        total_power += random.uniform(-5.0, 5.0)
+        
+        # Не применяем шум, если общая база равна 0
+        if total_power > 0:
+            total_power += random.uniform(-5.0, 5.0)
+            
         save_telemetry(round(max(0, total_power), 2))
 
 async def command_receiver(websocket: WebSocket):
@@ -157,7 +166,7 @@ async def command_receiver(websocket: WebSocket):
                     "id": new_id, 
                     "name": "Новое устройство", 
                     "icon": "Plug", 
-                    "base_power": 10, 
+                    "base_power": 0, # По умолчанию 0 Вт
                     "isOn": False, 
                     "isCritical": False
                 }
