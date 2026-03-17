@@ -1,7 +1,10 @@
 // Финальная, самовосстанавливающаяся версия сервиса
 let socket: WebSocket | null = null;
 let reconnectTimer: NodeJS.Timeout | null = null;
-const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws';
+
+// Определяем URL для WebSocket в зависимости от протокола страницы
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const WEBSOCKET_URL = `${protocol}//${window.location.host}/ws`;
 
 interface SocketCallbacks {
   onOpen: () => void;
@@ -10,17 +13,15 @@ interface SocketCallbacks {
 }
 
 function connect(callbacks: SocketCallbacks) {
-  // Предотвращаем создание дублирующих соединений
   if (socket && socket.readyState !== WebSocket.CLOSED) {
     return;
   }
 
-  console.log('Attempting to connect to WebSocket...');
+  console.log(`Attempting to connect to WebSocket at ${WEBSOCKET_URL}...`);
   socket = new WebSocket(WEBSOCKET_URL);
 
   socket.onopen = () => {
     console.log('WebSocket connected');
-    // Успешно подключились, отменяем таймер переподключения, если он был
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
@@ -41,17 +42,15 @@ function connect(callbacks: SocketCallbacks) {
     console.log('WebSocket disconnected. Attempting to reconnect in 3 seconds...');
     callbacks.onClose();
     
-    // Если уже есть запланированная попытка, не создаем новую
     if (!reconnectTimer) {
       reconnectTimer = setTimeout(() => {
-        connect(callbacks); // Пытаемся подключиться снова
+        connect(callbacks);
       }, 3000);
     }
   };
 
   socket.onerror = (error) => {
     console.error('WebSocket error:', error);
-    // onerror всегда вызывает onclose, поэтому логика реконнекта сработает автоматически
     socket?.close();
   };
 }

@@ -6,14 +6,16 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    hmr: {
-      host: 'localhost',
-      protocol: 'ws',
-    },
-    // Добавляем разрешенные хосты
+    // Добавляем и конкретный хост, и маску для надежности
     allowedHosts: [
       'cryptoclastic-curt-prehensile.ngrok-free.dev',
-      '.ngrok-free.app', // Разрешаем все поддомены ngrok
-    ]
-  }
+      '.ngrok-free.app'
+    ],
+    proxy: {
+      '/ws': {
+        target: 'ws://localhost:8000',
+        ws: true,
+      },
+    },
+  },
 })
