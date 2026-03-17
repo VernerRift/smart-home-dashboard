@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useDashboardStore } from '../store/useDashboardStore';
 import type { Device } from '../store/useDashboardStore';
-import { socketService } from '../services/socketService';
 import * as Icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const availableIcons = [
   'Router', 'Database', 'Camera', 'Server', 'Flame', 'Waves', 'Refrigerator',
@@ -24,7 +25,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
   
   const isPending = pendingDevices.includes(device.id);
 
-  // Локальное состояние для редактирования
   const [editValues, setEditValues] = useState({
     name: device.name,
     iconName: device.iconName,
@@ -32,7 +32,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
     isCritical: device.isCritical,
   });
 
-  // Синхронизируем локальное состояние, только если мы НЕ в режиме редактирования.
   useEffect(() => {
     if (!isEditing) {
       setEditValues({
@@ -52,7 +51,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
   const handleInputChange = (field: keyof typeof editValues, value: string | number | boolean) => {
     const newValues = { ...editValues, [field]: value };
     setEditValues(newValues);
-    // Отправляем команду обновления
     updateDevice(device.id, newValues);
   };
 
@@ -62,21 +60,27 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
     }
   };
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: device.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
   const IconComponent = (Icons[device.iconName as keyof typeof Icons] as LucideIcon) || Icons.Plug;
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className={clsx(
-        'rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 relative',
+        'rounded-2xl p-5 flex flex-col justify-between relative',
         'bg-slate-900 dark:bg-slate-800 shadow-lg',
-        isPending && 'opacity-70'
+        !isDragging && 'transition-all duration-300', // Отключаем CSS-анимации во время перетаскивания
+        isPending && 'opacity-70',
+        isDragging && 'shadow-2xl shadow-blue-500/50 z-10'
       )}
     >
-      {/* Кнопка удаления в режиме редактирования */}
       {isEditing && (
         <button
           onClick={handleDelete}
-          className="absolute top-4 right-4 text-slate-500 hover:text-rose-500 transition-colors p-1"
+          className="absolute top-4 right-4 text-slate-500 hover:text-rose-500 transition-colors p-1 z-20"
           title="Удалить устройство"
         >
           <Icons.Trash2 size={18} />
@@ -86,22 +90,31 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
       <div className="flex justify-between items-start mb-4 gap-4">
         
         {isEditing ? (
-          <div className="flex flex-col gap-2 w-full pr-8">
-            <div className="flex items-center gap-2 w-full">
-              <select 
-                value={editValues.iconName} 
-                onChange={(e) => handleInputChange('iconName', e.target.value)} 
-                className="bg-slate-700 text-white rounded-md px-2 py-1 flex-shrink-0"
-              >
-                {availableIcons.map(iconName => <option key={iconName} value={iconName}>{iconName}</option>)}
-              </select>
-              <input 
-                type="text" 
-                value={editValues.name} 
-                onChange={(e) => handleInputChange('name', e.target.value)} 
-                className="bg-slate-700 text-white rounded-md px-2 py-1 w-full" 
-                placeholder="Название" 
-              />
+          <div className="flex items-start gap-2 w-full pr-8">
+            <button 
+              {...attributes} 
+              {...listeners} 
+              className="cursor-grab active:cursor-grabbing text-slate-500 mt-1 flex-shrink-0 touch-none p-2 -ml-2 rounded-lg hover:bg-slate-800"
+            >
+              <Icons.GripVertical size={20} />
+            </button>
+            <div className="flex flex-col gap-2 w-full pt-1">
+              <div className="flex items-center gap-2 w-full">
+                <select 
+                  value={editValues.iconName} 
+                  onChange={(e) => handleInputChange('iconName', e.target.value)} 
+                  className="bg-slate-700 text-white rounded-md px-2 py-1 flex-shrink-0"
+                >
+                  {availableIcons.map(iconName => <option key={iconName} value={iconName}>{iconName}</option>)}
+                </select>
+                <input 
+                  type="text" 
+                  value={editValues.name} 
+                  onChange={(e) => handleInputChange('name', e.target.value)} 
+                  className="bg-slate-700 text-white rounded-md px-2 py-1 w-full" 
+                  placeholder="Название" 
+                />
+              </div>
             </div>
           </div>
         ) : (
@@ -142,7 +155,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
 
       <div className="flex justify-between items-end">
         {isEditing ? (
-           <div className="flex flex-col gap-3">
+           <div className="flex flex-col gap-3 pl-8">
              <div className="flex items-center gap-2">
                <input 
                  type="number" 
@@ -159,7 +172,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
                </div>
              </div>
              
-             {/* Тогл критичности */}
              <div className="flex items-center gap-3">
                <label htmlFor={`critical-${device.id}`} className="relative inline-flex items-center cursor-pointer">
                  <input

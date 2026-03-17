@@ -136,6 +136,21 @@ async def command_receiver(websocket: WebSocket):
                     save_state()
                     await broadcast_state()
 
+            elif action == "reorder_devices" and "device_ids" in message_data:
+                device_ids = message_data["device_ids"]
+                new_state = {}
+                for d_id in device_ids:
+                    if d_id in devices_state:
+                        new_state[d_id] = devices_state[d_id]
+                # Добавляем те, которые могли потеряться
+                for d_id in devices_state:
+                    if d_id not in new_state:
+                        new_state[d_id] = devices_state[d_id]
+                devices_state.clear()
+                devices_state.update(new_state)
+                save_state()
+                await broadcast_state()
+
     except WebSocketDisconnect:
         pass
     finally:

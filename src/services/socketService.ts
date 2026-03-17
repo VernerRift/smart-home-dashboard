@@ -76,4 +76,9 @@ export const socketService = {
       socket.send(JSON.stringify({ action: 'remove_device', device_id: deviceId }));
     }
   },
+  sendReorderCommand: (deviceIds: string[]) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ action: 'reorder_devices', device_ids: deviceIds }));
+    }
+  },
 };

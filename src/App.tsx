@@ -6,7 +6,22 @@ import DeviceCard from './components/DeviceCard';
 import { PowerChart } from './components/PowerChart';
 import { Zap, Pencil, Plus, Check } from 'lucide-react';
 import { ConnectionStatus } from './components/ConnectionStatus';
-import { socketService } from './services/socketService';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  MouseSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 function App() {
   const [isEditing, setIsEditing] = useState(false);
@@ -16,17 +31,13 @@ function App() {
   const addHistoryPoint = useDashboardStore(state => state.addHistoryPoint);
   const setConnectionStatus = useDashboardStore(state => state.setConnectionStatus);
   const setDevicesState = useDashboardStore(state => state.setDevicesState);
-  
-  // Получаем функцию добавления нового устройства
+  const connect = useDashboardStore(state => state.connect);
   const addDevice = useDashboardStore(state => state.addDevice);
+  const reorderDevices = useDashboardStore(state => state.reorderDevices);
 
   useEffect(() => {
-    socketService.connect({
-      onOpen: () => setConnectionStatus(true),
-      onMessage: (data) => setDevicesState(data),
-      onClose: () => setConnectionStatus(false),
-    });
-  }, [setConnectionStatus, setDevicesState]);
+    connect();
+  }, [connect]);
 
   const totalConsumption = getTotalConsumption();
   const TARIFF_UAH_PER_KWH = 4.32;
@@ -38,6 +49,33 @@ function App() {
     }, 1000);
     return () => clearInterval(intervalId);
   }, [addHistoryPoint]);
+
+  // Убираем искусственную задержку (delay) для TouchSensor, 
+  // чтобы перетаскивание на мобильных устройствах начиналось мгновенно.
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = devices.findIndex((d) => d.id === active.id);
+      const newIndex = devices.findIndex((d) => d.id === over.id);
+      reorderDevices(oldIndex, newIndex);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 p-4 md:p-8 text-slate-50">
@@ -83,9 +121,13 @@ function App() {
             </div>
             
             <div className="space-y-4 flex-grow">
-              {devices.map(device => (
-                <DeviceCard key={device.id} device={device} isEditing={isEditing} />
-              ))}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} disabled={!isEditing}>
+                <SortableContext items={devices.map((d) => d.id)} strategy={verticalListSortingStrategy}>
+                  {devices.map(device => (
+                    <DeviceCard key={device.id} device={device} isEditing={isEditing} />
+                  ))}
+                </SortableContext>
+              </DndContext>
             </div>
 
             {isEditing && (

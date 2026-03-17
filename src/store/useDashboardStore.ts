@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { arrayMove } from '@dnd-kit/sortable';
 import { socketService } from '../services/socketService';
 
 export interface Device {
@@ -26,6 +27,7 @@ interface DashboardState {
   addDevice: () => void;
   updateDevice: (id: string, updates: Partial<Omit<Device, 'id'>>) => void;
   removeDevice: (id: string) => void;
+  reorderDevices: (oldIndex: number, newIndex: number) => void;
   setDevicesState: (backendDevices: Device[]) => void;
   setConnectionStatus: (status: boolean) => void;
   addHistoryPoint: () => void;
@@ -69,6 +71,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       devices: state.devices.filter(d => d.id !== id),
     }));
     socketService.sendRemoveDeviceCommand(id);
+  },
+
+  reorderDevices: (oldIndex: number, newIndex: number) => {
+    set(state => {
+      const newDevices = arrayMove(state.devices, oldIndex, newIndex);
+      socketService.sendReorderCommand(newDevices.map(d => d.id));
+      return { devices: newDevices };
+    });
   },
 
   setDevicesState: (backendDevices) => set(state => {
