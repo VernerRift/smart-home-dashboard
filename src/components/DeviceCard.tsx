@@ -29,26 +29,27 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
     name: device.name,
     iconName: device.iconName,
     powerDrawW: device.powerDrawW,
+    isCritical: device.isCritical,
   });
 
   // Синхронизируем локальное состояние, только если мы НЕ в режиме редактирования.
-  // Иначе скачки мощности с сервера будут сбрасывать то, что вводит пользователь.
   useEffect(() => {
     if (!isEditing) {
       setEditValues({
         name: device.name,
         iconName: device.iconName,
         powerDrawW: device.powerDrawW,
+        isCritical: device.isCritical,
       });
     }
-  }, [isEditing, device.name, device.iconName, device.powerDrawW]);
+  }, [isEditing, device.name, device.iconName, device.powerDrawW, device.isCritical]);
 
   const handleToggle = () => {
     if (isPending) return;
     toggleDevice(device.id);
   };
 
-  const handleInputChange = (field: keyof typeof editValues, value: string | number) => {
+  const handleInputChange = (field: keyof typeof editValues, value: string | number | boolean) => {
     const newValues = { ...editValues, [field]: value };
     setEditValues(newValues);
     // Отправляем команду обновления
@@ -85,21 +86,23 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
       <div className="flex justify-between items-start mb-4 gap-4">
         
         {isEditing ? (
-          <div className="flex items-center gap-2 w-full pr-8"> {/* Добавлен padding справа для кнопки удаления */}
-            <select 
-              value={editValues.iconName} 
-              onChange={(e) => handleInputChange('iconName', e.target.value)} 
-              className="bg-slate-700 text-white rounded-md px-2 py-1 flex-shrink-0"
-            >
-              {availableIcons.map(iconName => <option key={iconName} value={iconName}>{iconName}</option>)}
-            </select>
-            <input 
-              type="text" 
-              value={editValues.name} 
-              onChange={(e) => handleInputChange('name', e.target.value)} 
-              className="bg-slate-700 text-white rounded-md px-2 py-1 w-full" 
-              placeholder="Название" 
-            />
+          <div className="flex flex-col gap-2 w-full pr-8">
+            <div className="flex items-center gap-2 w-full">
+              <select 
+                value={editValues.iconName} 
+                onChange={(e) => handleInputChange('iconName', e.target.value)} 
+                className="bg-slate-700 text-white rounded-md px-2 py-1 flex-shrink-0"
+              >
+                {availableIcons.map(iconName => <option key={iconName} value={iconName}>{iconName}</option>)}
+              </select>
+              <input 
+                type="text" 
+                value={editValues.name} 
+                onChange={(e) => handleInputChange('name', e.target.value)} 
+                className="bg-slate-700 text-white rounded-md px-2 py-1 w-full" 
+                placeholder="Название" 
+              />
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-4 min-w-0"> 
@@ -139,19 +142,36 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, isEditing = false }) =>
 
       <div className="flex justify-between items-end">
         {isEditing ? (
-           <div className="flex items-center gap-2">
-             <input 
-               type="number" 
-               value={editValues.powerDrawW} 
-               onChange={(e) => handleInputChange('powerDrawW', Number(e.target.value))} 
-               className="bg-slate-700 text-white rounded-md px-2 py-1 w-24" 
-             />
-             <span className="text-sm text-slate-400">Вт</span>
-             <div className="group relative flex items-center gap-1 text-slate-500 ml-2 cursor-help">
-               <Icons.Info size={16} />
-               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-                 Только для демо
-               </span>
+           <div className="flex flex-col gap-3">
+             <div className="flex items-center gap-2">
+               <input 
+                 type="number" 
+                 value={editValues.powerDrawW} 
+                 onChange={(e) => handleInputChange('powerDrawW', Number(e.target.value))} 
+                 className="bg-slate-700 text-white rounded-md px-2 py-1 w-24" 
+               />
+               <span className="text-sm text-slate-400">Вт</span>
+               <div className="group relative flex items-center gap-1 text-slate-500 ml-2 cursor-help">
+                 <Icons.Info size={16} />
+                 <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                   Только для демо
+                 </span>
+               </div>
+             </div>
+             
+             {/* Тогл критичности */}
+             <div className="flex items-center gap-3">
+               <label htmlFor={`critical-${device.id}`} className="relative inline-flex items-center cursor-pointer">
+                 <input
+                   type="checkbox"
+                   id={`critical-${device.id}`}
+                   className="sr-only peer"
+                   checked={editValues.isCritical}
+                   onChange={(e) => handleInputChange('isCritical', e.target.checked)}
+                 />
+                 <div className="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+               </label>
+               <span className="text-sm text-slate-300">Критически важное</span>
              </div>
            </div>
         ) : (

@@ -123,6 +123,8 @@ async def command_receiver(websocket: WebSocket):
                         devices_state[device_id]["icon"] = updates["iconName"]
                     if "powerDrawW" in updates:
                         devices_state[device_id]["base_power"] = float(updates["powerDrawW"])
+                    if "isCritical" in updates:
+                        devices_state[device_id]["isCritical"] = bool(updates["isCritical"])
                     save_state()
                     await broadcast_state()
             
