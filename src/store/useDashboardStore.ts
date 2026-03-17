@@ -19,7 +19,8 @@ export interface HistoryPoint {
 interface DashboardState {
   devices: Device[];
   pendingDevices: string[];
-  history: HistoryPoint[];
+  history: HistoryPoint[]; // Real-time history (last 60s)
+  historicalData: HistoryPoint[]; // Aggregated DB history
   isConnected: boolean;
   
   connect: () => void;
@@ -31,6 +32,7 @@ interface DashboardState {
   setDevicesState: (backendDevices: Device[]) => void;
   setConnectionStatus: (status: boolean) => void;
   addHistoryPoint: () => void;
+  fetchHistoricalData: () => Promise<void>;
   getTotalConsumption: () => number;
 }
 
@@ -38,6 +40,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   devices: [], // Начальное состояние пустое, все придет с сервера
   pendingDevices: [],
   history: [],
+  historicalData: [],
   isConnected: false,
 
   connect: () => socketService.connect({
@@ -73,7 +76,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     socketService.sendRemoveDeviceCommand(id);
   },
 
-  reorderDevices: (oldIndex: number, newIndex: number) => {
+  reorderDevices: (oldIndex, newIndex) => {
     set(state => {
       const newDevices = arrayMove(state.devices, oldIndex, newIndex);
       socketService.sendReorderCommand(newDevices.map(d => d.id));
@@ -109,4 +112,17 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const time = new Date().toLocaleTimeString('ru-RU');
     set(state => ({ history: [...state.history, { time, load: totalLoad }].slice(-60) }));
   },
+  
+  fetchHistoricalData: async () => {
+    try {
+      // Используем относительный путь, чтобы прокси Vite (или Nginx в проде) сам перенаправлял запрос
+      const response = await fetch(`/api/history`);
+      if (response.ok) {
+        const data = await response.json();
+        set({ historicalData: data });
+      }
+    } catch (error) {
+      console.error('Failed to fetch historical data:', error);
+    }
+  }
 }));

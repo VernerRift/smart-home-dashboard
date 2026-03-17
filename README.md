@@ -1,46 +1,53 @@
-# React + TypeScript + Vite
+# Smart Home Dashboard 🏠⚡
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Современный дашборд для управления умным домом и мониторинга энергопотребления в реальном времени. Проект состоит из интерактивного фронтенда на React и быстрого асинхронного бэкенда на FastAPI.
 
-Currently, two official plugins are available:
+## ✨ Ключевые возможности
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Реалтайм телеметрия:** Мгновенное обновление данных о потреблении энергии через WebSockets.
+- **Управление устройствами:** Включение/выключение, добавление новых, редактирование и удаление устройств прямо из интерфейса.
+- **История потребления:** Сбор и агрегация данных об энергопотреблении (SQLite) с доступом через REST API.
+- **Синхронизация состояния:** Сохранение текущего состояния устройств в `state.json` и восстановление после перезапуска бэкенда.
+- **Плавные UI-анимации:** Кастомные хуки для анимированного изменения числовых значений мощности.
 
-## React Compiler
+## 🛠 Стек технологий
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Frontend
+- **React 18** + **TypeScript**
+- **Vite** — невероятно быстрый сборщик
+- **Tailwind CSS** — для стилизации
+- **Lucide React** — коллекция красивых иконок
 
-## Expanding the ESLint configuration
+### Backend
+- **Python 3** + **FastAPI**
+- **WebSockets** — для двусторонней связи в реальном времени
+- **SQLite** — для хранения исторической статистики
+- **Uvicorn** — ASGI-сервер
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🚀 Как запустить проект
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Проект разделен на две части: клиентскую (Frontend) и серверную (Backend). Для полноценной работы необходимо запустить обе.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Запуск Backend (FastAPI)
+
+Убедитесь, что у вас установлен Python (версии 3.8 или выше).
+
+Перейдите в папку с бэкендом (если она выделена отдельно) или в корень проекта, где лежит `main.py`:
+
+```bash
+# Рекомендуется создать виртуальное окружение
+python -m venv venv
+source venv/bin/activate  # Для Linux/macOS
+venv\Scripts\activate     # Для Windows
+
+# Установка зависимостей
+pip install fastapi uvicorn
+
+# Запуск сервера
+python main.py
+# Сервер запустится на http://localhost:8000
 ```
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:

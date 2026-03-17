@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDashboardStore } from './store/useDashboardStore';
 import { ConsumptionChart } from './components/ConsumptionChart';
+import { HistoricalChart } from './components/HistoricalChart';
 import { AnimatedConsumption } from './components/AnimatedConsumption';
 import DeviceCard from './components/DeviceCard';
 import { PowerChart } from './components/PowerChart';
@@ -50,8 +51,6 @@ function App() {
     return () => clearInterval(intervalId);
   }, [addHistoryPoint]);
 
-  // Убираем искусственную задержку (delay) для TouchSensor, 
-  // чтобы перетаскивание на мобильных устройствах начиналось мгновенно.
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
@@ -102,7 +101,12 @@ function App() {
                 ₴ {hourlyCost.toFixed(2)} / час
               </div>
             </div>
-            <ConsumptionChart />
+            
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <ConsumptionChart />
+              <HistoricalChart />
+            </div>
+
             <div className="bg-slate-900 rounded-3xl p-6">
               <h2 className="text-lg font-medium text-slate-400 mb-2">Нагрузка по устройствам</h2>
               <PowerChart />
