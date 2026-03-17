@@ -1,53 +1,53 @@
 # Smart Home Dashboard 🏠⚡
 
-Современный дашборд для управления умным домом и мониторинга энергопотребления в реальном времени. Проект состоит из интерактивного фронтенда на React и быстрого асинхронного бэкенда на FastAPI.
+A modern dashboard for smart home management and real-time energy monitoring. The project consists of an interactive React frontend and a fast asynchronous FastAPI backend.
 
-## ✨ Ключевые возможности
+## ✨ Key Features
 
-- **Реалтайм телеметрия:** Мгновенное обновление данных о потреблении энергии через WebSockets.
-- **Управление устройствами:** Включение/выключение, добавление новых, редактирование и удаление устройств прямо из интерфейса.
-- **История потребления:** Сбор и агрегация данных об энергопотреблении (SQLite) с доступом через REST API.
-- **Синхронизация состояния:** Сохранение текущего состояния устройств в `state.json` и восстановление после перезапуска бэкенда.
-- **Плавные UI-анимации:** Кастомные хуки для анимированного изменения числовых значений мощности.
+- **Real-time telemetry:** Instant energy consumption data updates via WebSockets.
+- **Device management:** Turn devices on/off, add new ones, edit, and delete devices directly from the UI.
+- **Consumption history:** Collection and aggregation of energy consumption data (SQLite) accessible via REST API.
+- **State synchronization:** Current device states are saved to `state.json` and restored after backend restarts.
+- **Smooth UI animations:** Custom hooks for animating power numerical values.
 
-## 🛠 Стек технологий
+## 🛠 Tech Stack
 
 ### Frontend
 - **React 18** + **TypeScript**
-- **Vite** — невероятно быстрый сборщик
-- **Tailwind CSS** — для стилизации
-- **Lucide React** — коллекция красивых иконок
+- **Vite** — blazing fast bundler
+- **Tailwind CSS** — for styling
+- **Lucide React** — beautiful icon collection
 
 ### Backend
 - **Python 3** + **FastAPI**
-- **WebSockets** — для двусторонней связи в реальном времени
-- **SQLite** — для хранения исторической статистики
-- **Uvicorn** — ASGI-сервер
+- **WebSockets** — for real-time bidirectional communication
+- **SQLite** — for historical data storage
+- **Uvicorn** — ASGI server
 
 ---
 
-## 🚀 Как запустить проект
+## 🚀 How to Run the Project
 
-Проект разделен на две части: клиентскую (Frontend) и серверную (Backend). Для полноценной работы необходимо запустить обе.
+The project is divided into two parts: the client (Frontend) and the server (Backend). You need to run both for the application to work fully.
 
-### 1. Запуск Backend (FastAPI)
+### 1. Running the Backend (FastAPI)
 
-Убедитесь, что у вас установлен Python (версии 3.8 или выше).
+Ensure you have Python installed (version 3.8 or higher).
 
-Перейдите в папку с бэкендом (если она выделена отдельно) или в корень проекта, где лежит `main.py`:
+Navigate to the backend folder (if it's separated) or the project root where `main.py` is located:
 
 ```bash
-# Рекомендуется создать виртуальное окружение
+# It is recommended to create a virtual environment
 python -m venv venv
-source venv/bin/activate  # Для Linux/macOS
-venv\Scripts\activate     # Для Windows
+source venv/bin/activate  # For Linux/macOS
+venv\Scripts\activate     # For Windows
 
-# Установка зависимостей
+# Install dependencies
 pip install fastapi uvicorn
 
-# Запуск сервера
+# Start the server
 python main.py
-# Сервер запустится на http://localhost:8000
+# The server will start at http://localhost:8000
 ```
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
